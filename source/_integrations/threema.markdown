@@ -8,6 +8,7 @@ ha_config_flow: true
 ha_iot_class: Cloud Push
 ha_domain: threema
 ha_platforms:
+  - image
   - notify
 ha_integration_type: service
 ha_quality_scale: silver
@@ -44,7 +45,7 @@ If you leave the private key empty, the integration uses **basic mode** instead,
 
 Threema Gateway's end-to-end mode uses the same NaCl "box" construction as Threema's apps, built on Curve25519. To encrypt a message, your private key is combined with the recipient's public key in an Elliptic Curve Diffie-Hellman exchange to derive a shared secret. That secret encrypts the message with XSalsa20 and authenticates it with Poly1305. The recipient does the same operation in reverse: their private key combined with your public key yields the identical shared secret, since Diffie-Hellman on an elliptic curve gives the same result regardless of which side's keys are used.
 
-This is why the config flow only ever asks for a public key to double-check what you pasted: your private key is what does the actual encrypting, so it is the one that gets stored, while a public key you enter is only used once, locally, to confirm it matches that private key.
+This is also why the config flow lets you paste in a public key: your private key does the actual encrypting and is the one that gets stored, while the public key is only checked once, locally, against that private key. It's an authenticity check — confirming the key pair you're configuring matches what you registered at gateway.threema.ch over that separate, out-of-band channel — not something the encryption itself depends on.
 
 {% enddetails %}
 
@@ -58,7 +59,7 @@ API secret:
 Private key:
   description: "Optional for basic mode, required for end-to-end encryption mode."
 Public key:
-  description: "Optional. Used once to verify it matches the private key; it is never stored."
+  description: "Optional. Checked once, locally, as an authenticity check against the private key; it is never stored."
 {% endconfiguration_basic %}
 
 ## Recipients
@@ -69,13 +70,17 @@ After setting up the gateway, add recipients as **subentries**. Go to **Settings
 
 Each recipient subentry creates its own **device**, named after the recipient, for example, "Dad (AB1CD2EF)", or only the Threema ID if no name was given. The device hosts a single notify entity used to send messages to that recipient.
 
-### Supported functionality
+If you configured a private key for end-to-end encryption, the integration also creates one **Gateway** device for the gateway itself. This device hosts the QR code image entity described below, and is not created in basic mode.
 
-The **Threema** integration provides the following entities.
+## Entities
 
-#### Notify
+### Notify
 
 Each recipient device has one notify entity, named after the recipient. To find its entity ID, go to **Settings** > **Devices & services** > **Threema**, and open the device of the recipient.
+
+### Image
+
+In end-to-end encryption mode, the Gateway device has a **Gateway QR code** entity, a diagnostic entity containing a `3mid:` QR code built from your Gateway ID and public key, the same format Threema's apps use to verify a contact's identity. Scan it with the Threema app to confirm, out-of-band, that the gateway you configured really is yours before trusting messages sent through it.
 
 ## Actions
 
